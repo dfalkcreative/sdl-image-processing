@@ -5,6 +5,8 @@ Feel free to use and include your own functions as well. To include in your proj
 
 If any bugs or issues are found, please email me at danielfalk.composer@gmail.com so that I can sort it out!
 
+
+
 Kernel Operation - Emboss
 ![alt tag](Screens/Kernel_Emboss.jpg)
 
