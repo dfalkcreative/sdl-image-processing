@@ -5,13 +5,11 @@ Feel free to use and include your own functions as well. To include in your proj
 
 If any bugs or issues are found, please email me at danielfalk.composer@gmail.com so that I can sort it out!
 
-
-
-Kernel Operation - Emboss
+<b>Kernel Operation - Emboss</b>
 ![alt tag](Screens/Kernel_Emboss.jpg)
 
-Trace Binary
+<b>Trace Binary</b>
 ![alt tag](Screens/Trace.jpg)
 
-Adjust Contrast - Average Histogram Comparison
+<b>Adjust Contrast - Average Histogram Comparison</b>
 ![alt tag](Screens/AdjustContrast_HistogramAverage.jpg)
