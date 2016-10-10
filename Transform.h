@@ -1,6 +1,8 @@
 #ifndef TRANSFORM_H
 #define TRANSFORM_H
 
+typedef int flag;
+
 namespace transform{
 	const int FILTER_NONE			= 0;
 	const int FILTER_BLUR			= 1;
@@ -49,7 +51,7 @@ namespace transform{
 	const int COLOR_BEIGE			= 14;
 	const int COLOR_TAN				= 15;
 
-	//Histogram Styling
+	//Histogram and Graph Styling
 	const int GRAPH_DOTTED			= 0;
 	const int GRAPH_LINEAR			= 1;
 	const int GRAPH_FILLED			= 2;
@@ -86,11 +88,25 @@ namespace transform{
 
 	//Math Variables
 	const double PI					= 3.141592;
+
+	//GUI Constants
+	const int WINPOS_CENTERED		= 0;
+	const int WINPOS_TOP_L			= 1;
+	const int WINPOS_TOP_R			= 2;
+	const int WINPOS_BOTTOM_L		= 3;
+	const int WINPOS_BOTTOM_R		= 4;
+
+	//GUI::Window States
+	const int GUI_STATE_DEFAULT = 0;
+	const int GUI_STATE_HOVER = 1;
+	const int GUI_STATE_DRAG = 2;
+	const int GUI_STATE_RESIZE = 3;
 }	
 
 struct Vec2i{
 	int x, y;
 
+	Vec2i();
 	Vec2i(int X, int Y):x(X), y(Y){}
 };
 
@@ -157,8 +173,6 @@ struct Kernel5x5 : public DMatrix5x5{
 	void Sobel(int);
 };
 
-typedef int flag;
-
 //----------------------------------------------------------------------------------------------------------------------//
 //												 Constructor Functions:													//
 //----------------------------------------------------------------------------------------------------------------------//
@@ -166,31 +180,40 @@ typedef int flag;
 //'SDL_Rect' constructor function
 SDL_Rect CreateRect(int x, int y, int w, int h);
 
+//'SDL_Rect' constructor function
 SDL_Rect CreateRect(double x, double y, double w, double h);
 
+//'SDL_Rect' constructor function
 SDL_Rect CreateRect(float x, float y, float w, float h);
 
 //'SDL_Color' constructor function
 SDL_Color CreateColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
+//'SDL_Color' constructor function
 SDL_Color CreateColor(int r, int g, int b, int a);
 
+//'SDL_Color' constructor function
 SDL_Color CreateColor(double r, double g, double b, double a);
 
+//'SDL_Color' constructor function
 SDL_Color CreateColor(float r, float g, float b, float a);
 
 //'Vec2i' constructor function
 Vec2i CreateVec2i(int x, int y);
 
+//'Vec2i' constructor function
 Vec2i CreateVec2i(double x, double y);
 
+//'Vec2i' constructor function
 Vec2i CreateVec2i(float x, float y);
 
 //'Vec2d' constructor function
 Vec2d CreateVec2d(double x, double y);
 
+//'Vec2d' constructor function
 Vec2d CreateVec2d(int x, int y);
 
+//'Vec2d' constructor function
 Vec2d CreateVec2d(float x, float y);
 
 //----------------------------------------------------------------------------------------------------------------------//
@@ -205,6 +228,9 @@ SDL_Color getColor(flag id);
 
 //Returns SDL_Color at specified point on surface
 SDL_Color grabColor(SDL_Surface* surface, int x, int y);
+
+//Applies gamma correction to specified color
+SDL_Color correctGamma(SDL_Color color, double amount);
 
 //Returns the number of colors found on a surface
 int getColors(SDL_Surface* surface);
@@ -249,6 +275,7 @@ SDL_Surface* EmptySurface(int wid, int hei);
 //Copy surface contents to another surface
 SDL_Surface* CopySurface(SDL_Surface* surface);
 
+//Copy region of surface to another surface at specified region
 void CopyRegion(SDL_Surface* srcSurface, SDL_Surface* dstSurface, SDL_Rect srcRect, SDL_Rect dstRect);
 
 //Scale surface in both directions by scalar amount
@@ -259,6 +286,12 @@ SDL_Surface* ScaleSurface(SDL_Surface* surface, double scaleX, double scaleY);
 
 //Resize surface to a specified width and height
 SDL_Surface* ResizeSurface(SDL_Surface* surface, int wid, int hei);
+
+//Add surface pixels scaled to opacity (between 0.0 and 1.0) to target
+void AddSurface(SDL_Surface* target, SDL_Surface* source, double opacity);
+
+//Subtract surface pixels scaled to opacity (between 0.0 and 1.0) from target
+void SubtractSurface(SDL_Surface* target, SDL_Surface* source, double opacity);
 
 //----------------------------------------------------------------------------------------------------------------------//
 //											  Kernel & Filter Functions:												//
@@ -301,17 +334,24 @@ void Threshold(SDL_Surface* surface, flag channel, int max);
 //Use to replace a color (within a set threshold) to another color.
 void ReplaceColor(SDL_Surface* surface, SDL_Color srcColor, SDL_Color dstColor, int threshold);
 
+//Removes every (amount) pixel from surface
 void Interlace(SDL_Surface* surface, int amount);
 
+//Replaces every (amount) pixel from surface to target color
 void Interlace(SDL_Surface* surface, int amount, SDL_Color color);
 
+//Replaces every (amount) pixel from surface to target color through any IL_* flag (IL_HORIZONTAL, IL_VERTICAL, etc.)
 void Interlace(SDL_Surface* surface, int amount, SDL_Color color, flag style);
 
+//Use to replace or blend every (amount) pixel from surface to target color through any IL_* flag (IL_HORIZONTAL, IL_VERTICAL, etc.). 
+//Blend modes include BLEND_ADD, BLEND_SUBTRACT, and BLEND_DEFAULT
 void Interlace(SDL_Surface* surface, int amount, SDL_Color color, flag style, flag blend);
 
-//Use to reduce the amount of colors in a surface. 'colors' is the number of colors you would like.
+//Use to reduce the amount of colors in a surface. "colors" indicates the max number of colors per channel (Total colors can range from 3^3^3)
 void Posterize(SDL_Surface* surface, int colors);
 
+//Use to reduce the amount of colors in a surface. "colors" indicates the max number of colors per channel (Total colors can range from 3^3^3). 
+//The "style" flag can be used to introduce effects inline through POST_* constants (POST_BW, POST_HIGH_C, etc.)
 void Posterize(SDL_Surface* surface, int colors, flag style);
 
 //Shrink binary image
@@ -341,37 +381,46 @@ void AdjustMulti(SDL_Surface* surface, int rOffset, int gOffset, int bOffset);
 //Adds uniform amount to all color channels	
 void AdjustBrightness(SDL_Surface* surface, int amount);							
 
-//Adjust surface dynamic range
+//Adjust surface dynamic range (recommended amounts between 0.0 and 100.0)
 void AdjustContrast(SDL_Surface* surface, double amount);
 
-//Adjust highlight amount on surface
+//Adjust highlight amount on surface (recommended amounts between 0.0 and 100.0)
 void AdjustHighlights(SDL_Surface* surface, double amount);
 
-//Adjust shadow amount on surface
+//Adjust shadow amount on surface (recommended amounts between 0.0 and -100.0)
 void AdjustShadows(SDL_Surface* surface, double amount);
 
-//Adjust gamma level of surface
+//Adjust gamma level of surface (recommended amounts between 0.0 to 8.0)
 void AdjustGamma(SDL_Surface* surface, double amount);
+
+//Adjust color tempurature of surface
+void AdjustTemperature(SDL_Surface* surface, double kelvin, double strength);
+
+//Generate temperature spectrum to SDL_Surface
+SDL_Surface* TemperatureSpectrum(double kelvinA, double kelvinB, int height);
 
 //Draw gradient or solid line
 void DrawLine(SDL_Surface* surface, Vec2i srcPos, Vec2i dstPos, SDL_Color srcCol, SDL_Color dstCol);
 
-//Draw circle
+//Draw basic circle to surface
 void DrawCircle(SDL_Surface* surface, Vec2i pos, double radius, SDL_Color outline, SDL_Color fill, bool filled, bool dotted);
 
 //Draw rectangle to surface
 void DrawRect(SDL_Surface* surface, Vec2i srcPos, Vec2i dstPos, SDL_Color outline, SDL_Color fill, bool filled);
 
+//Generate cone gradient on target surface
 void GradientCone();
 
-//Generate radial gradient
+//Generate radial gradient on target surface
 void GradientRadial(SDL_Surface* surface, Vec2i pos, double radius, SDL_Color srcCol, SDL_Color dstCol);
 
-//Generate linear gradient
+//Generate linear gradient on target surface
 void GradientLinear(Vec2i srcPos, Vec2i dstPos, SDL_Color srcCol, SDL_Color dstCol);
 
+//Generate basic noise
 void GenerateNoise(SDL_Surface* surface, flag style, Uint8 rangeMin, Uint8 rangeMax);
 
+//Generate difference clouds
 void GenerateClouds();
 
 //Fills in specified surface with solid color
@@ -389,6 +438,8 @@ void Histogram(SDL_Surface* srcSurface, SDL_Surface* dstSurface, flag channel, f
 
 void Histogram(SDL_Surface* srcSurface, SDL_Surface* dstSurface, flag channel, flag style, int padding, int desample, int maxY);
 
+void FFT(SDL_Surface* source, SDL_Surface* destination, double samples);
+
 //----------------------------------------------------------------------------------------------------------------------//
 //											    Color Conversion Functions:												//
 //----------------------------------------------------------------------------------------------------------------------//
@@ -396,5 +447,9 @@ void Histogram(SDL_Surface* srcSurface, SDL_Surface* dstSurface, flag channel, f
 void RGBtoHSV(float r, float g, float b, float *h, float *s, float *v);
 
 void HSVtoRGB(float *r, float *g, float *b, float h, float s, float v);
+
+//----------------------------------------------------------------------------------------------------------------------//
+//											    Color Conversion Functions:												//
+//----------------------------------------------------------------------------------------------------------------------//
 
 #endif

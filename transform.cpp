@@ -2,11 +2,13 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <complex>
 #include <math.h>
 #include "SDL.h"
 #include "SDL_image.h"
 #include "SDL_ttf.h"
 #include "Transform.h"
+//#include "FFT/kiss_fft.h"
 
 using namespace transform;
 using namespace std;
@@ -14,6 +16,10 @@ using namespace std;
 //----------------------------------------------------------------------------------------------------------------------//
 //												 Constructor Functions:													//
 //----------------------------------------------------------------------------------------------------------------------//
+
+Vec2i::Vec2i(){
+	x = 0; y = 0;
+}
 
 SDL_Rect CreateRect(int x, int y, int w, int h){
 	SDL_Rect temp;
@@ -140,10 +146,82 @@ SDL_Color getColor(flag id){
 	}
 }
 
+SDL_Color getTemperatureColor(double kelvin){
+	if (kelvin < 1000) kelvin = 1000; else if (kelvin > 40000) kelvin = 40000;
+
+	kelvin /= 100;
+	double r, g, b, calc;
+	SDL_Color out;
+
+	//Red
+	if (kelvin <= 66)
+		r = 255;
+	else{
+		//'Note: the R-squared value for this approximation is .988
+		calc = kelvin - 60;
+		calc = 329.698727446 * pow(calc, -0.1332047592);
+		r = calc;
+
+		if (r < 0) r = 0; else if (r > 255) r = 255;
+	}
+
+	//Green
+	if (kelvin <= 66){
+		//'Note: the R-squared value for this approximation is .996
+		calc = kelvin;
+		calc = (99.4708025861 * log(calc)) - 161.1195681661;
+		g = calc;
+
+		if (g < 0) g = 0; else if (g > 255) g = 255;
+	}
+	else{
+		//'Note: the R-squared value for this approximation is .987
+		calc = kelvin - 60;
+		calc = 288.1221695283 * pow(calc, -0.0755148492);
+		g = calc;
+
+		if (g < 0) g = 0; else if (g > 255) g = 255;
+	}
+
+	//Blue
+	if (kelvin >= 66)
+		b = 255;
+	else if (kelvin <= 19)
+		b = 0;
+	else{
+		//'Note: the R-squared value for this approximation is .998
+		calc = kelvin - 10;
+		calc = 138.5177312231 * log(calc) - 305.0447927307;
+
+		b = calc;
+
+		if (b < 0) b = 0; else if (b > 255) b = 255;
+	}
+
+	out = CreateColor(Uint8(r), Uint8(g), Uint8(b), Uint8(255));
+	//out = correctGamma(out, 0.454545);
+
+	return out;
+}
+
 SDL_Color grabColor(SDL_Surface* surface, int x, int y){
 	Uint32 color = GetPixel(surface, x, y); SDL_Color rgba;
 	SDL_GetRGBA(color, surface->format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
 	return rgba;
+}
+
+SDL_Color correctGamma(SDL_Color color, double amount){
+	double correction = 1 / amount;
+
+	double r = 255 * pow(double(color.r) / 255, correction);
+	double g = 255 * pow(double(color.g) / 255, correction);
+	double b = 255 * pow(double(color.b) / 255, correction);
+
+	if (r < 0) r = 0; else if (r > 255) r = 255;
+	if (g < 0) g = 0; else if (g > 255) g = 255;
+	if (b < 0) b = 0; else if (b > 255) b = 255;
+
+	return CreateColor(Uint8(r), Uint8(g), Uint8(b), color.a);
 }
 
 int getColors(SDL_Surface* surface){
@@ -286,6 +364,25 @@ SDL_Surface* EmptySurface(SDL_Surface* surface, int wid, int hei){
 #endif
 
 	SDL_Surface* temp = SDL_CreateRGBSurface(NULL, wid, hei, surface->format->BitsPerPixel, rmask, gmask, bmask, amask);
+	return temp;
+}
+
+SDL_Surface* EmptySurface(int wid, int hei){
+	Uint32 rmask, gmask, bmask, amask;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	rmask = 0xff000000;
+	gmask = 0x00ff0000;
+	bmask = 0x0000ff00;
+	amask = 0x000000ff;
+#else
+	rmask = 0x000000ff;
+	gmask = 0x0000ff00;
+	bmask = 0x00ff0000;
+	amask = 0xff000000;
+#endif
+
+	SDL_Surface* temp = SDL_CreateRGBSurface(NULL, wid, hei, 32, rmask, gmask, bmask, amask);
 	return temp;
 }
 
@@ -1373,6 +1470,76 @@ void AdjustGamma(SDL_Surface* surface, double amount){
 	}
 }
 
+void AdjustTemperature(SDL_Surface* surface, double kelvin, double strength){
+	if (kelvin < 1000) kelvin = 1000; else if (kelvin > 40000) kelvin = 40000;
+
+	double temp = kelvin / 100;
+	double r, g, b, calc;
+
+	//Red
+	if (temp <= 66)
+		r = 255;
+	else{
+		//'Note: the R-squared value for this approximation is .988
+		calc = temp - 60;
+		calc = 329.698727446 * pow(calc, -0.1332047592);
+		r = calc;
+
+		if (r < 0) r = 0; else if (r > 255) r = 255;
+	}
+
+	//Green
+	if (temp <= 66){
+		//'Note: the R-squared value for this approximation is .996
+		calc = temp;
+		calc = 99.4708025861 * log(calc) - 161.1195681661;
+		g = calc;
+
+		if (g < 0) g = 0; else if (g > 255) g = 255;
+	}
+	else{
+		//'Note: the R-squared value for this approximation is .987
+		calc = temp - 60;
+		calc = 288.1221695283 * pow(calc, -0.0755148492);
+		g = calc;
+
+		if (g < 0) g = 0; else if (g > 255) g = 255;
+	}
+
+	//Blue
+	if (temp >= 66)
+		b = 255;
+	else if (temp <= 19)
+		b = 0;
+	else{
+		//'Note: the R-squared value for this approximation is .998
+		calc = temp - 10;
+		calc = 138.5177312231 * log(calc) - 305.0447927307;
+
+		b = calc;
+
+		if (b < 0) b = 0; else if (b > 255) b = 255;
+	}
+
+	r *= strength; g *= strength; b *= strength;
+
+	AdjustMulti(surface,int(r), int(g), int(b));
+}
+
+SDL_Surface* TemperatureSpectrum(double kelvinA, double kelvinB, int height){
+	SDL_Surface* temp = EmptySurface(kelvinB - kelvinA, height);
+
+	for (int x = 0; x < kelvinB - kelvinA; x++){
+		SDL_Color color = getTemperatureColor(x + kelvinA);
+
+		for (int y = 0; y < height; y++){
+			SetPixel(temp, x, y, SDL_MapRGBA(temp->format, color.r, color.g, color.b, 255));
+		}
+	}
+
+	return temp;
+}
+
 //----------------------------------------------------------------------------------------------------------------------//
 //											         Drawing Functions:												    //
 //----------------------------------------------------------------------------------------------------------------------//
@@ -1767,6 +1934,10 @@ void Histogram(SDL_Surface* srcSurface, SDL_Surface* dstSurface, flag channel, f
 	}
 }
 
+void FFT(SDL_Surface* source, SDL_Surface* destination, double samples){
+
+}
+
 //----------------------------------------------------------------------------------------------------------------------//
 //											    Color Conversion Functions:												//
 //----------------------------------------------------------------------------------------------------------------------//
@@ -1854,26 +2025,32 @@ void HSVtoRGB(float *r, float *g, float *b, float h, float s, float v)
 //	Current bugs, fixes, and feature ideas:																				//
 //----------------------------------------------------------------------------------------------------------------------//
 //	Known Bugs:																											//
-//		9/28/2016: function FilterOffset() does not work for negative y values.											//
-//		9/28/2016: function Posterize() is inaccurately grouping colors (or possibly leaving some out of the			//
-//			grouping). Use function getColors() after calling function Posterize() to debug.							//
+//		9/28/2016: function FilterOffset() does not work for negative Y values.											//
 //		9/29/2016: function DrawCircle() has wierd spacing issues. Look at dotted = true, filled = false.				//
 //																														//
-//	To-do:																												//
+//	Tasks:																												//
 //		# Implement within function Histogram() ability to view HSV values rather than RGB.								//
-//		# Optimize functions DrawLine(), DrawRect(), and DrawCircle().													//
 //		# Add ability to detect object within image.																	//
 //		# Add simple method to add text to surface at specified position.												//
-//		# (Possibly) Rename all instances of 'CreateColor' to 'CreateRGB'												//
-//		!!!																												//
-//		# (9/28/2016 added) Implement function Erode()																	//
-//		# (9/29/2016 added) Implement function Histogram()																//
-//		# (9/29/2016 added) Add ability to draw hollow rects.															//
-//		# (9/29/2016 added) Implement function DrawCircle()																//
+//		# Add segmentation functionality to binary surface.																//
+//		# Implement binary surface type.																				//
+//		# Implement overloads for filtering specified regions rather than full surfaces.								//
+//		# Integrate kiss_FFT for 2D Fourier transform.																	//
+//			% Implement high pass filtering, low pass filtering, and band pass filtering.								//
+//		# Use sinusoids for gradient functions rather than linear interpolation.										//
 //																														//
-//	Fixes:																												//
+//	Changelog:																											//
+//		9/27/2016 (added): Implement function Erode()																	//
 //		9/28/2016 (fixed): functions Erode() and Dilate() don't take image edge into account.							//
 //		9/28/2016 (fixed): function GradientRadial() only draws single gradient line to surface.						//
 //		9/29/2016 (fixed): function DrawLine() only drawing single line with constant slope.							//
-//		9/29/2016 (fixed): function Histogram() draws graph upside down. Fml.											//
+//		9/29/2016 (fixed): function Histogram() draws graph upside down.												//
+//		9/29/2016 (added): Implement function Histogram()																//
+//		9/29/2016 (added): Add ability to draw hollow rects.															//
+//		9/29/2016 (added): Implement function DrawCircle()																//
+//		10/1/2016: Replaced header comments for new functions. Cleaned up some code a bit.								//
+//		10/1/2016: Added function Interlace() with overloads and styling. Looks cool.									//
+//		10/2/2016 (fixed): function Posterize() inaccurately calculating pixel steps.									//
+//		10/4/2016: Began work on GUI system.																			//
+//		10/7/2016: Added function AdjustTemperature() as well as several assist functions to handle visualization.		//
 //______________________________________________________________________________________________________________________//
