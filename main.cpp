@@ -4,6 +4,7 @@
 #include "SDL_image.h"
 #include "SDL_ttf.h"
 #include "Transform.h"
+//#include "GUI.h"
 
 using namespace std;
 using namespace transform;
@@ -24,30 +25,20 @@ int main(int argc, char* argv[]){
 	SDL_Event event;
 
 	//Load and modify image
-	SDL_Surface* image = IMG_Load("Resources/test.jpg");
-	SDL_Surface* filtered = CopySurface(image);
-	SDL_Surface* graphA	= EmptySurface(image);
-	SDL_Surface* graphB = EmptySurface(image);
+	SDL_Surface* image = IMG_Load("Resources/test.jpg");								//Load source image
+	SDL_Surface* filtered = EmptySurface(image);											//Copy source image's pixel format, pixel data, and dimensions
+	SDL_Surface* bg = EmptySurface(image, SCREEN_WID, SCREEN_HEI);
 
-	Interlace(filtered, 2, CreateColor(20,20,20,20), IL_DOTTED, BLEND_ADD);
+	//Generate background
+	Fill(bg, CreateColor(50,50,50,255));
 
-	Fill(graphA, CreateColor(30, 30, 30, 255));
-	DrawGridlines(graphA, CreateColor(45, 45, 45, 255), GRID_DEFAULT, 64, 4, 0, 0);
-	Histogram(image, graphA, CHANNEL_ALL, GRAPH_FILLED, 64, 1, 5000);
+	SDL_Texture* tImage = SDL_CreateTextureFromSurface(renderer, image);
+	SDL_Texture* tPost = SDL_CreateTextureFromSurface(renderer, filtered);
+	SDL_Texture* back = SDL_CreateTextureFromSurface(renderer, bg);
 
-	Fill(graphB, CreateColor(30, 30, 30, 255));
-	DrawGridlines(graphB, CreateColor(45, 45, 45, 255), GRID_DEFAULT, 64, 4, 0, 0);
-	Histogram(filtered, graphB, CHANNEL_ALL, GRAPH_FILLED, 64, 1, 5000);
-
-	SDL_Texture* imageTex = SDL_CreateTextureFromSurface(renderer, image);
-	SDL_Texture* post = SDL_CreateTextureFromSurface(renderer, filtered);
-	SDL_Texture* gtexA = SDL_CreateTextureFromSurface(renderer, graphA); 
-	SDL_Texture* gtexB = SDL_CreateTextureFromSurface(renderer, graphB);
-
+	//Clean Up
 	SDL_FreeSurface(image);
 	SDL_FreeSurface(filtered);
-	SDL_FreeSurface(graphA);
-	SDL_FreeSurface(graphB);
 
 	//Main loop
 	bool quit = false;
@@ -63,10 +54,9 @@ int main(int argc, char* argv[]){
 
 		//Render media
 		SDL_RenderClear(renderer);
-		SDL_RenderCopy(renderer, imageTex, NULL, &CreateRect(0,0, SCREEN_WID/2, SCREEN_HEI/2));
-		SDL_RenderCopy(renderer, post, NULL, &CreateRect(0, SCREEN_HEI/2, SCREEN_WID/2, SCREEN_HEI/2));
-		SDL_RenderCopy(renderer, gtexA, NULL, &CreateRect(SCREEN_WID/2, 0, SCREEN_WID/2, SCREEN_HEI/2));
-		SDL_RenderCopy(renderer, gtexB, NULL, &CreateRect(SCREEN_WID/2, SCREEN_HEI/2, SCREEN_WID/2, SCREEN_HEI/2));
+		SDL_RenderCopy(renderer, back, NULL, NULL);
+		SDL_RenderCopy(renderer, tImage, NULL, &CreateRect(0,SCREEN_HEI/4, SCREEN_WID/2, SCREEN_HEI/2));
+		SDL_RenderCopy(renderer, tPost, NULL, &CreateRect(SCREEN_WID/2, SCREEN_HEI/4, SCREEN_WID/2, SCREEN_HEI/2));
 		SDL_RenderPresent(renderer);
 	}
 
