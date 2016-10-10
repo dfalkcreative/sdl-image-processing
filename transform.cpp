@@ -147,6 +147,8 @@ SDL_Color getColor(flag id){
 }
 
 SDL_Color getTemperatureColor(double kelvin){
+	//Code translated from http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
+	//Credit to Tanner Helland for conversion math
 	if (kelvin < 1000) kelvin = 1000; else if (kelvin > 40000) kelvin = 40000;
 
 	kelvin /= 100;
@@ -1471,6 +1473,9 @@ void AdjustGamma(SDL_Surface* surface, double amount){
 }
 
 void AdjustTemperature(SDL_Surface* surface, double kelvin, double strength){
+	//Code translated from http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
+	//Credit to Tanner Helland for conversion math
+
 	if (kelvin < 1000) kelvin = 1000; else if (kelvin > 40000) kelvin = 40000;
 
 	double temp = kelvin / 100;
