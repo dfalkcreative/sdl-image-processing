@@ -90,8 +90,6 @@ inline SDL_Rect Quad::getRect(){
 	return CreateRect(minX, minY, maxX, maxY);
 }
 
-
-
 QuadTree::QuadTree(){
 	quads.clear();
 	quads.resize(0);
@@ -277,8 +275,6 @@ inline SDL_Rect QuadTree::getRect(int index){
 	return CreateRect(minX, minY, maxX, maxY);
 }
 
-
-
 Segmented::Segmented(){
 	surface = EmptySurface(64, 64);
 	isValid = false;
@@ -302,39 +298,8 @@ Segmented::Segmented(SDL_Surface* source, Uint8 threshold){
 	isValid = true;
 }
 
-
-
 vector<Vec2i> RotateData(vector<Vec2i> points){
-	/*
-	//define the x - and y - data for the original line we would like to rotate
-		x = 1:10;
-		y = 1:10;
 
-	//create a matrix of these points, which will be useful in future calculations
-		v = [x; y];
-
-	//choose a point which will be the center of rotation
-		x_center = x(3);
-		y_center = y(3);
-
-	//create a matrix which will be used later in calculations
-		center = repmat([x_center; y_center], 1, length(x));
-
-	//define a 60 degree counter - clockwise rotation matrix
-		theta = pi / 3;       % pi / 3 radians = 60 degrees
-		R = [cos(theta) - sin(theta); sin(theta) cos(theta)];
-
-	//do the rotation...
-		s = v - center;     % shift points in the plane so that the center of rotation is at the origin
-		so = R*s;           % apply the rotation about the origin
-		vo = so + center;   % shift again so the origin goes back to the desired center of rotation
-
-	//this can be done in one line as :
-	//vo = R*(v - center) + center 
-		% pick out the vectors of rotated x - and y - data
-		x_rotated = vo(1, :);
-		y_rotated = vo(2, :);
-	*/
 	vector<Vec2i> out;
 	return out;
 }
@@ -568,155 +533,33 @@ vector<Vec2i> PointTrace(SDL_Surface* surface){
 
 void SearchPolygons(QuadTree tree, int index, Vec2i samples){
 	SDL_Surface* temp = EmptySurface(tree.rect.w, tree.rect.h);
-
 	SDL_Rect rect = tree.quads[index].rect;
 
 	int w = rect.w - rect.x;
 	int h = rect.h - rect.y;
 
-	double dx = double(w / samples.x);
-	double dy = double(h / samples.y);
+	double dx = w / samples.x;
+	double dy = h / samples.y;
+
+	Vec2i loc;
 
 	for (int y = 0; y < samples.y; y++){
 		for (int x = 0; x < samples.x; x++){
-			double locX = rect.x + (x * dx);
-			double locY = rect.y + (y * dx);
-
-			if (PointInPoly(tree.quads[index].points, Vec2i(int(locX), int(locY))) != false)
-				SetPixel(temp, locX, locY, SDL_MapRGBA(temp->format, 0, 0, 255, 255));
+			loc = CreateVec2i(rect.x + int(x * dx), rect.y + int(y * dy));
+			
+			if (PointInPoly(tree.quads[index].points, loc) != false){
+				SetPixel(temp, loc.x, loc.y, SDL_MapRGBA(temp->format, 0, 0, 255, 255));
+			}
 			else
-				SetPixel(temp, locX, locY, SDL_MapRGBA(temp->format, 255, 0, 0, 255));
+				SetPixel(temp, loc.x, loc.y, SDL_MapRGBA(temp->format, 255, 0, 0, 255));
 		}
 	}
 
 	IMG_SavePNG(temp, "polygons.png");
 }
 
-/*
-inline bool ptExists(vector<Vec2i> points, Vec2i pt){
-	bool found = false;
 
-	for (int a = 0; a < points.size(); a++){
-		if (points[a].x == pt.x && points[a].y == pt.y){
-			found = true;
-			break;
-		}
-	}
 
-	return found;
-}
-
-inline bool ptExists(vector<Vec2i> points, int* id, Vec2i pt){
-	for (int a = 0; a < points.size(); a++){
-		if (points[a].x == pt.x && points[a].y == pt.y){
-			*id = a;
-			return true;
-		}
-	}
-
-	return false;
-}
-
-inline bool ptExists(vector<Vec2i> points, Vec2i pt, vector<Vec2i> exclusion){
-	bool found = false;
-
-	for (int a = 0; a < points.size(); a++){
-		if (points[a].x == pt.x && points[a].y == pt.y){
-			found = true;
-			break;
-		}
-	}
-
-	return found;
-}
-
-vector<Polygon> polyTrace(vector<Vec2i> points){
-	//All found polygons will be stored in
-	vector<Polygon> out; Polygon temp;
-
-	for (int a = 0; a < points.size()/16; a++){
-		cout << a << " of " << points.size()/16 << endl;
-
-		bool success = false; bool complete = false;
-
-		temp.points.clear(); temp.points.resize(0);
-
-		Vec2i start(points[a].x,points[a].y);
-		Vec2i iter = start;
-
-		temp.points.push_back(iter);
-
-		while (success != true){
-			//cout << iter.x << " " << iter.y << endl;
-
-			//Search surrounding area for connected point
-			for (int y = -1; y < 2; y+=2){
-				for (int x = -1; x < 2; x+=2){
-					Vec2i search(iter.x + x, iter.y + y);
-
-					bool hasMajorPt = ptExists(points, search);
-					bool hasMinorPt = ptExists(temp.points, search);
-
-					//Check if point 'iter' exists within points array and check that it hasn't already been found
-					if (hasMajorPt != false && hasMinorPt != true){
-						temp.points.push_back(search);
-						iter = search;
-					}
-					else if (hasMajorPt != false && hasMinorPt != false){
-						if (start.x == search.x && start.y == search.y){
-							complete = true;
-							success = true;
-						}
-					}
-					else if (hasMajorPt != true){
-						complete = false;
-						success = true;
-					}
-				}
-			}
-		}
-
-		if(complete != false) out.push_back(temp);
-	}
-
-	return out;
-}
-
-bool ptInPoly(){
-	return true;
-}
-
-void RemoveNoise(SDL_Surface* surface, vector<Vec2i> points, int distance){
-	//------------------------------------------------------------------------------------------------------//
-	//	Process:																							//
-	//		1.) Trace() surface to find outline.															//
-	//		2.) Store Trace() values as points.																//
-	//		3.) Follow points to find polygons.																//
-	//		4.) Raytrace all points within source to determine if target point is within a hole or not.		//
-	//		5.) If so, fill with 0.																			//
-	//______________________________________________________________________________________________________//
-
-	vector<int> id;
-	SDL_Rect search; 
-	int iter;
-
-	for (int a = 0; a < points.size(); a++){
-		search = CreateRect(points[a].x, points[a].y, distance, distance);
-		iter = 0;
-		cout << a << endl;
-
-		for (int y = search.y; y < search.y + search.h; y++){
-			for (int x = search.x; x < search.x + search.w; x++){
-				if (ptExists(points, &iter, Vec2i(search.x + x, search.y + y)) != false){
-					cout << iter << endl;
-					id.push_back(iter);
-				}
-			}
-		}
-	}
-}
-
-*/
 
 //======================================================================================================================//
 //	Current bugs, fixes, and feature ideas:																				//
