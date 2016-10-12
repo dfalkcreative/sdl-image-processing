@@ -178,43 +178,43 @@ struct Kernel5x5 : public DMatrix5x5{
 //----------------------------------------------------------------------------------------------------------------------//
 
 //'SDL_Rect' constructor function
-SDL_Rect CreateRect(int x, int y, int w, int h);
+inline SDL_Rect CreateRect(int x, int y, int w, int h);
 
 //'SDL_Rect' constructor function
-SDL_Rect CreateRect(double x, double y, double w, double h);
+inline SDL_Rect CreateRect(double x, double y, double w, double h);
 
 //'SDL_Rect' constructor function
-SDL_Rect CreateRect(float x, float y, float w, float h);
+inline SDL_Rect CreateRect(float x, float y, float w, float h);
 
 //'SDL_Color' constructor function
-SDL_Color CreateColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+inline SDL_Color CreateColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
 //'SDL_Color' constructor function
-SDL_Color CreateColor(int r, int g, int b, int a);
+inline SDL_Color CreateColor(int r, int g, int b, int a);
 
 //'SDL_Color' constructor function
-SDL_Color CreateColor(double r, double g, double b, double a);
+inline SDL_Color CreateColor(double r, double g, double b, double a);
 
 //'SDL_Color' constructor function
-SDL_Color CreateColor(float r, float g, float b, float a);
+inline SDL_Color CreateColor(float r, float g, float b, float a);
 
 //'Vec2i' constructor function
-Vec2i CreateVec2i(int x, int y);
+inline Vec2i CreateVec2i(int x, int y);
 
 //'Vec2i' constructor function
-Vec2i CreateVec2i(double x, double y);
+inline Vec2i CreateVec2i(double x, double y);
 
 //'Vec2i' constructor function
-Vec2i CreateVec2i(float x, float y);
+inline Vec2i CreateVec2i(float x, float y);
 
 //'Vec2d' constructor function
-Vec2d CreateVec2d(double x, double y);
+inline Vec2d CreateVec2d(double x, double y);
 
 //'Vec2d' constructor function
-Vec2d CreateVec2d(int x, int y);
+inline Vec2d CreateVec2d(int x, int y);
 
 //'Vec2d' constructor function
-Vec2d CreateVec2d(float x, float y);
+inline Vec2d CreateVec2d(float x, float y);
 
 //----------------------------------------------------------------------------------------------------------------------//
 //												   Assist Functions:													//
@@ -286,6 +286,8 @@ SDL_Surface* ScaleSurface(SDL_Surface* surface, double scaleX, double scaleY);
 
 //Resize surface to a specified width and height
 SDL_Surface* ResizeSurface(SDL_Surface* surface, int wid, int hei);
+
+SDL_Surface* ScaleRegion(SDL_Surface* surface, SDL_Rect rect);
 
 //Add surface pixels scaled to opacity (between 0.0 and 1.0) to target
 void AddSurface(SDL_Surface* target, SDL_Surface* source, double opacity);

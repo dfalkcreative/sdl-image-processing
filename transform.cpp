@@ -8,6 +8,7 @@
 #include "SDL_image.h"
 #include "SDL_ttf.h"
 #include "Transform.h"
+#include "Util/Segment.h"
 //#include "FFT/kiss_fft.h"
 
 using namespace transform;
@@ -21,75 +22,75 @@ Vec2i::Vec2i(){
 	x = 0; y = 0;
 }
 
-SDL_Rect CreateRect(int x, int y, int w, int h){
+inline SDL_Rect CreateRect(int x, int y, int w, int h){
 	SDL_Rect temp;
 	temp.x = x; temp.y = y; temp.w = w; temp.h = h;
 	return temp;
 }
 
-SDL_Rect CreateRect(double x, double y, double w, double h){
+inline SDL_Rect CreateRect(double x, double y, double w, double h){
 	SDL_Rect temp;
 	temp.x = int(x); temp.y = int(y); temp.w = int(w); temp.h = int(h);
 	return temp;
 }
 
-SDL_Rect CreateRect(float x, float y, float w, float h){
+inline SDL_Rect CreateRect(float x, float y, float w, float h){
 	SDL_Rect temp;
 	temp.x = int(x); temp.y = int(y); temp.w = int(w); temp.h = int(h);
 	return temp;
 }
 
-SDL_Color CreateColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
+inline SDL_Color CreateColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a){
 	SDL_Color temp;
 	temp.r = r; temp.g = g; temp.b = b; temp.a = a;
 	return temp;
 }
 
-SDL_Color CreateColor(int r, int g, int b, int a){
+inline SDL_Color CreateColor(int r, int g, int b, int a){
 	SDL_Color temp;
 	temp.r = Uint8(r); temp.g = Uint8(g); temp.b = Uint8(b); temp.a = Uint8(a);
 	return temp;
 }
 
-SDL_Color CreateColor(double r, double g, double b, double a){
+inline SDL_Color CreateColor(double r, double g, double b, double a){
 	SDL_Color temp;
 	temp.r = Uint8(r); temp.g = Uint8(g); temp.b = Uint8(b); temp.a = Uint8(a);
 	return temp;
 }
 
-SDL_Color CreateColor(float r, float g, float b, float a){
+inline SDL_Color CreateColor(float r, float g, float b, float a){
 	SDL_Color temp;
 	temp.r = Uint8(r); temp.g = Uint8(g); temp.b = Uint8(b); temp.a = Uint8(a);
 	return temp;
 }
 
-Vec2i CreateVec2i(int x, int y){
+inline Vec2i CreateVec2i(int x, int y){
 	Vec2i temp(x, y); return temp;
 }
 
-Vec2i CreateVec2i(double x, double y){
+inline Vec2i CreateVec2i(double x, double y){
 	int iX = int(x); int iY = int(y);
 
 	Vec2i temp(iX, iY); return temp;
 }
 
-Vec2i CreateVec2i(float x, float y){
+inline Vec2i CreateVec2i(float x, float y){
 	int iX = int(x); int iY = int(y);
 
 	Vec2i temp(iX, iY); return temp;
 }
 
-Vec2d CreateVec2d(double x, double y){
+inline Vec2d CreateVec2d(double x, double y){
 	Vec2d temp(x, y); return temp;
 }
 
-Vec2d CreateVec2d(int x, int y){
+inline Vec2d CreateVec2d(int x, int y){
 	double dX = double(x); double dY = double(y);
 
 	Vec2d temp(dX, dY); return temp;
 }
 
-Vec2d CreateVec2d(float x, float y){
+inline Vec2d CreateVec2d(float x, float y){
 	double dX = double(x); double dY = double(y);
 
 	Vec2d temp(dX, dY); return temp;
@@ -438,6 +439,22 @@ SDL_Surface* ResizeSurface(SDL_Surface* surface, int wid, int hei){
 	for (int y = 0; y < temp->h; y++){
 		for (int x = 0; x < temp->w; x++){
 			SetPixel(temp, x, y, GetPixel(surface,int(x/dw),int(y/dh)));
+		}
+	}
+
+	return temp;
+}
+
+SDL_Surface* ScaleRegion(SDL_Surface* surface, SDL_Rect rect){
+	//Note: For some really wild behavior, change the step scalar ( x * dw ) & (y * dh ) to division rather than multiplication.
+	SDL_Surface* temp = EmptySurface(surface);
+
+	double dw = double(rect.w) / surface->w;
+	double dh = double(rect.h) / surface->h;
+
+	for (int y = 0; y < temp->h; y++){
+		for (int x = 0; x < temp->w; x++){
+			SetPixel(temp, x, y, GetPixel(surface, int(rect.x + ( x * dw)), int(rect.y + ( y * dh))));
 		}
 	}
 
